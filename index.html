@@ -3,240 +3,95 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Barcode Generator + Scanner</title>
+  <title>Barcode Scanner</title>
+
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#1a73e8">
 
   <style>
-    * {
-      box-sizing: border-box;
-    }
-    
-    body { 
-      margin:0; 
-      background:#fff; 
-      font-family:system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-      height: 100vh;
-      overflow: hidden;
-    }
-    
-    .app { 
-      height:100vh; 
-      display:flex; 
-      flex-direction:column; 
-      background: #f5f5f5;
-    }
-
-    .header {
-      background: #1a73e8;
-      color: white;
-      padding: 16px;
-      text-align: center;
-      font-weight: 600;
-      font-size: 18px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
+    body { margin:0; background:#fff; font-family:system-ui; }
+    .app { height:100vh; display:flex; flex-direction:column; }
 
     .barcode-area{
-      height: 2.5in;
+      height:2in;
       display:flex;
       flex-direction:column;
       justify-content:center;
       align-items:center;
-      background: white;
-      margin: 16px;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      padding: 16px;
+    }
+
+    #preview-container {
+      position: relative; /* Container for video and the scanning frame/mask */
+      width: 100%;
+      flex: 1; /* Video will take available space */
+      display: none; /* Hide by default */
     }
 
     #preview {
-      width:100%;
+      width: 100%;
       height: 100%;
-      display:none;
-      background:#000;
-      position: relative;
+      object-fit: cover; /* Ensure video covers the container */
+      background: #000;
+      display: block;
     }
 
-    .scanner-overlay {
+    /* --- Scanning Mask/Viewport (Focus Area) --- */
+    .scan-mask {
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      color: white;
-      background: rgba(0, 0, 0, 0.7);
-      z-index: 10;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none; /* Allows clicks/taps to pass through to the video */
     }
 
-    .scanner-frame {
-      width: 80%;
-      height: 200px;
-      border: 2px solid #1a73e8;
-      border-radius: 12px;
-      position: relative;
-      margin-bottom: 20px;
-    }
-
-    .scanner-line {
-      width: 100%;
-      height: 2px;
-      background: #1a73e8;
+    .scan-mask-box {
       position: absolute;
       top: 50%;
-      animation: scan 2s linear infinite;
+      left: 50%;
+      width: 80%; /* Adjust as needed */
+      height: 20%; /* Adjust as needed */
+      transform: translate(-50%, -50%);
+      border: 2px solid #ff0000; /* Red border to indicate scan area */
+      box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.5); /* Darkens the area outside the box */
+      box-sizing: border-box;
+      border-radius: 4px;
     }
-
-    @keyframes scan {
-      0% { top: 10%; }
-      50% { top: 90%; }
-      100% { top: 10%; }
-    }
-
-    .scanning-text {
-      font-size: 18px;
-      margin-top: 20px;
-      text-align: center;
-    }
+    /* ------------------------------------------- */
 
     .input-area{
-      position: fixed;
-      bottom: 0; 
-      left: 0; 
-      right: 0;
       background:#fff;
-      padding: 16px;
+      padding:10px;
       display:flex;
-      gap: 12px;
-      box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-      z-index: 100;
+      gap:8px;
     }
 
-    input { 
-      flex:1; 
-      padding: 14px 16px; 
-      border-radius: 12px; 
-      font-size: 16px; 
-      border: 1px solid #ddd;
-      outline: none;
-    }
-    
-    input:focus {
-      border-color: #1a73e8;
-    }
-
-    button { 
-      padding: 14px 20px; 
-      border-radius: 12px; 
-      border:none; 
-      background:#1a73e8; 
-      color:#fff; 
-      font-weight: 600;
-      font-size: 16px;
-      cursor: pointer;
-      transition: all 0.2s;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
-    button:active {
-      transform: scale(0.98);
-      background: #0d62d9;
-    }
-
-    #clearBtn {
-      background: #f44336;
-    }
-    
-    #clearBtn:active {
-      background: #d32f2f;
-    }
-
-    .status {
-      padding: 8px 16px;
-      text-align: center;
-      font-size: 14px;
-      color: #666;
-    }
-
-    .result-area {
-      flex: 1;
-      padding: 16px;
-      overflow-y: auto;
-    }
-
-    .result-card {
-      background: white;
-      padding: 16px;
-      border-radius: 12px;
-      margin-bottom: 12px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
-
-    .result-type {
-      font-size: 12px;
-      color: #1a73e8;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-
-    .result-content {
-      font-size: 16px;
-      word-break: break-all;
-    }
-
-    .scan-history {
-      margin-top: 20px;
-    }
-
-    .history-title {
-      font-size: 16px;
-      font-weight: 600;
-      margin-bottom: 12px;
-      color: #333;
-    }
+    input { flex:1; padding:12px; border-radius:8px; font-size:18px; border:1px solid #ccc; }
+    button { padding:10px 14px; border-radius:8px; border:none; background:#1a73e8; color:#fff; cursor:pointer; }
   </style>
 </head>
 <body>
 
 <div class="app">
-  <div class="header">
-    Barcode Generator + Scanner
-  </div>
 
   <div class="barcode-area">
     <svg id="barcode"></svg>
     <div id="barcodeLabel">—</div>
   </div>
 
-  <div class="result-area">
-    <div class="result-card">
-      <div class="result-type">LAST SCAN</div>
-      <div id="lastResult" class="result-content">No scans yet</div>
-    </div>
-    
-    <div class="scan-history">
-      <div class="history-title">RECENT SCANS</div>
-      <div id="scanHistory"></div>
+  <div id="preview-container">
+    <video id="preview" playsinline></video>
+    <div class="scan-mask">
+      <div class="scan-mask-box"></div>
     </div>
   </div>
 
-  <div class="status" id="status">Ready to scan</div>
-
-  <video id="preview" playsinline></video>
-
   <div class="input-area">
-    <button id="scanBtn">Scan</button>
-    <input id="textInput" placeholder="Type or Scan…" autocomplete="off" />
+    <button id="scanBtn">Scan Barcode</button>
+    <input id="textInput" placeholder="Type or Scan…" />
     <button id="clearBtn">Clear</button>
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@zxing/library@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@latest/umd/index.min.js"></script>
 
 <script>
   const input = document.getElementById("textInput");
@@ -245,244 +100,96 @@
   const scanBtn = document.getElementById("scanBtn");
   const clearBtn = document.getElementById("clearBtn");
   const video = document.getElementById("preview");
-  const status = document.getElementById("status");
-  const lastResult = document.getElementById("lastResult");
-  const scanHistory = document.getElementById("scanHistory");
+  const videoContainer = document.getElementById("preview-container");
 
-  let codeReader = null;
-  let isScanning = false;
-  let scanHistoryData = [];
-
-  // Initialize the app
-  function init() {
-    // Load scan history from localStorage
-    const savedHistory = localStorage.getItem('scanHistory');
-    if (savedHistory) {
-      scanHistoryData = JSON.parse(savedHistory);
-      updateScanHistory();
-    }
-    
-    // Set up code reader
-    codeReader = new ZXing.BrowserMultiFormatReader();
-    
-    // Add event listeners
-    input.addEventListener("input", () => render(input.value));
-    clearBtn.addEventListener("click", clearAll);
-    
-    // Add enter key support
-    input.addEventListener("keypress", (e) => {
-      if (e.key === "Enter") {
-        render(input.value);
-      }
-    });
-    
-    // Initialize scanner button
-    scanBtn.addEventListener("click", toggleScanner);
-    
-    // Set initial status
-    status.textContent = "Ready to scan";
+  // Function to clean up scanned text (only keep letters and spaces)
+  function cleanupScannedText(text) {
+    if (!text) return "";
+    // Regex to remove all numbers and trim leading/trailing spaces.
+    // This addresses your need to get "just name" even if there are numbers.
+    return text.replace(/[0-9]/g, '').trim(); 
   }
 
-  function render(val) {
-    if (!val) { 
-      barcode.innerHTML = ""; 
-      label.textContent = "—"; 
-      return; 
-    }
-    
-    try {
-      JsBarcode(barcode, val, {
-        format: "CODE128", 
-        displayValue: false,
-        width: 2,
-        height: 80,
-        margin: 10
-      });
-      label.textContent = val;
-    } catch (error) {
-      console.error("Barcode generation error:", error);
-      label.textContent = "Error generating barcode";
-    }
+  function render(val){
+    if(!val){ barcode.innerHTML=""; label.textContent="—"; return; }
+    JsBarcode(barcode, val, {format:"CODE128", displayValue:false});
+    // Display the cleaned-up version of the scanned text in the label
+    label.textContent = cleanupScannedText(val); 
   }
 
-  function toggleScanner() {
-    if (isScanning) {
-      stopScanner();
-    } else {
-      startScanner();
+  input.addEventListener("input",()=> render(input.value));
+  clearBtn.addEventListener("click",()=>{ 
+    input.value=""; 
+    render(""); 
+  });
+  
+  // Instance of the Code Reader
+  let codeReader;
+  let currentStream;
+
+  scanBtn.addEventListener("click", async ()=> {
+    if(!codeReader) {
+      // Use BrowserQRCodeReader or BrowserCodeReader for a simpler setup if MultiFormat is causing issues
+      // But BrowserMultiFormatReader is generally better for different code types.
+      codeReader = new ZXing.BrowserMultiFormatReader();
     }
-  }
 
-  async function startScanner() {
-    try {
-      status.textContent = "Starting camera...";
-      
-      // Request camera permission
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          facingMode: "environment",
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        } 
-      });
+    try{
+      // Show the video container
+      videoContainer.style.display = "block";
 
-      // Show video preview
-      video.style.display = "block";
-      video.srcObject = stream;
+      // Request camera stream
+      currentStream = await navigator.mediaDevices.getUserMedia({ video:{facingMode:"environment"} });
+      video.srcObject = currentStream;
+      video.play();
       
-      // Create scanner overlay
-      const overlay = document.createElement('div');
-      overlay.className = 'scanner-overlay';
-      overlay.innerHTML = `
-        <div class="scanner-frame">
-          <div class="scanner-line"></div>
-        </div>
-        <div class="scanning-text">Point camera at barcode or text</div>
-        <button id="cancelScan" style="margin-top: 20px; background: #f44336;">Cancel</button>
-      `;
-      video.parentNode.appendChild(overlay);
-      
-      // Add cancel button listener
-      document.getElementById('cancelScan').addEventListener('click', stopScanner);
-      
-      // Start decoding
-      status.textContent = "Scanning...";
-      isScanning = true;
-      scanBtn.textContent = "Stop";
-      
-      codeReader.decodeFromVideoDevice(null, video, (result, err) => {
-        if (result) {
-          handleScanResult(result.text);
+      // Stop previous scanning if any and start decoding
+      codeReader.reset();
+
+      codeReader.decodeFromVideoDevice(null, video, (result, err)=>{
+        if(result){
+          const rawText = result.text;
+          const cleanedText = cleanupScannedText(rawText);
+
+          // Update input with the original scanned text (for full data capture)
+          input.value = rawText; 
+          
+          // Render barcode and update label with the cleaned-up name
+          render(rawText); 
+
+          // Stop video stream and hide container after successful scan
+          if (currentStream) {
+            currentStream.getTracks().forEach(t => t.stop());
+            currentStream = null;
+          }
+          codeReader.reset();
+          videoContainer.style.display = "none";
         }
         
+        // Handle error (e.g., failed to decode)
         if (err && !(err instanceof ZXing.NotFoundException)) {
-          console.error("Scan error:", err);
-          status.textContent = "Scan error: " + err.message;
+            // console.error(err); // For debugging
         }
       });
 
-    } catch (err) {
-      console.error("Camera error:", err);
-      status.textContent = "Camera error";
-      
-      if (err.name === 'NotAllowedError') {
-        alert("Camera permission needed.\nPlease allow camera in browser settings.");
-      } else if (err.name === 'NotFoundError') {
-        alert("No camera found on this device.");
-      } else {
-        alert("Camera error: " + err.message);
+    }catch(err){
+      alert("Camera permission needed.\nPlease allow camera in browser settings: " + err);
+      // Ensure UI is reset if camera access fails
+      if (currentStream) {
+        currentStream.getTracks().forEach(t => t.stop());
+        currentStream = null;
       }
+      if (codeReader) codeReader.reset();
+      videoContainer.style.display = "none";
     }
-  }
+  });
 
-  function stopScanner() {
-    if (codeReader) {
-      codeReader.reset();
-    }
-    
-    if (video.srcObject) {
-      video.srcObject.getTracks().forEach(track => track.stop());
-      video.srcObject = null;
-    }
-    
-    video.style.display = "none";
-    
-    // Remove scanner overlay
-    const overlay = document.querySelector('.scanner-overlay');
-    if (overlay) {
-      overlay.remove();
-    }
-    
-    isScanning = false;
-    scanBtn.textContent = "Scan";
-    status.textContent = "Ready to scan";
-  }
+  // Initial render for empty state
+  render(input.value);
 
-  function handleScanResult(resultText) {
-    if (!resultText) return;
-    
-    // Update input and display
-    input.value = resultText;
-    render(resultText);
-    
-    // Update last result
-    lastResult.textContent = resultText;
-    
-    // Add to scan history
-    addToHistory(resultText);
-    
-    // Stop scanner after successful scan
-    stopScanner();
-    
-    // Provide feedback
-    status.textContent = "Scan successful!";
-    
-    // Auto-clear status after 2 seconds
-    setTimeout(() => {
-      if (!isScanning) {
-        status.textContent = "Ready to scan";
-      }
-    }, 2000);
-  }
-
-  function addToHistory(text) {
-    // Add to beginning of array
-    scanHistoryData.unshift({
-      text: text,
-      timestamp: new Date().toLocaleString()
-    });
-    
-    // Keep only last 10 items
-    if (scanHistoryData.length > 10) {
-      scanHistoryData = scanHistoryData.slice(0, 10);
-    }
-    
-    // Save to localStorage
-    localStorage.setItem('scanHistory', JSON.stringify(scanHistoryData));
-    
-    // Update UI
-    updateScanHistory();
-  }
-
-  function updateScanHistory() {
-    scanHistory.innerHTML = '';
-    
-    if (scanHistoryData.length === 0) {
-      scanHistory.innerHTML = '<div style="text-align: center; color: #999; padding: 20px;">No scan history</div>';
-      return;
-    }
-    
-    scanHistoryData.forEach(item => {
-      const historyItem = document.createElement('div');
-      historyItem.className = 'result-card';
-      historyItem.innerHTML = `
-        <div class="result-type">${item.timestamp}</div>
-        <div class="result-content">${item.text}</div>
-      `;
-      scanHistory.appendChild(historyItem);
-    });
-  }
-
-  function clearAll() {
-    input.value = "";
-    render("");
-    lastResult.textContent = "No scans yet";
-    status.textContent = "Cleared";
-    
-    // Auto-clear status after 1 second
-    setTimeout(() => {
-      status.textContent = "Ready to scan";
-    }, 1000);
-  }
-
-  // Initialize the app when DOM is loaded
-  document.addEventListener('DOMContentLoaded', init);
-
-  // Register service worker for PWA functionality
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("sw.js")
-      .then(registration => console.log("SW registered: ", registration))
-      .catch(error => console.log("SW registration failed: ", error));
+  // Register service worker (Assuming sw.js exists for PWA features)
+  if("serviceWorker" in navigator){
+    navigator.serviceWorker.register("sw.js").catch(e => console.error("SW failed", e));
   }
 </script>
 
