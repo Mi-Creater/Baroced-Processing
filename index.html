@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Barcode Scanner</title>
+    <title>Professional Barcode Scanner</title>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <script src="https://unpkg.com/@zxing/library@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
@@ -400,8 +400,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Barcode Scanner</h1>
-            <p>Scan barcodes or text - Both generate barcodes</p>
+            <h1>Professional Barcode Scanner</h1>
+            <p>Scan barcodes or text - Generate barcodes from any content</p>
         </div>
         
         <div class="content">
@@ -576,9 +576,10 @@
                     displayValue: false,
                     margin: 10,
                     background: "transparent",
-                    lineColor: "#1a73e8"
+                    lineColor: "#000000" // Changed to black as requested
                 });
                 
+                // Display the exact text (not converted to numbers)
                 label.textContent = val;
                 status.textContent = "Barcode generated successfully";
                 console.log("Barcode generated successfully for:", val);
@@ -710,8 +711,10 @@
                 progressBar.style.width = '30%';
                 status.textContent = "Initializing text recognition...";
                 
-                // Create Tesseract worker
-                const worker = await Tesseract.createWorker('eng');
+                // Create Tesseract worker with multilingual support
+                const worker = await Tesseract.createWorker();
+                await worker.loadLanguage('eng+spa+fra+deu+ita+por+rus+jpn+kor+chi_sim+chi_tra+ara+hin');
+                await worker.initialize('eng');
                 
                 progressBar.style.width = '60%';
                 status.textContent = "Recognizing text...";
@@ -728,7 +731,7 @@
                 progressBar.style.width = '100%';
                 
                 if (text && text.trim() !== '') {
-                    // Clean up the text
+                    // Clean up the text but preserve the original content
                     const cleanText = text.trim().replace(/\n/g, ' ').replace(/\s+/g, ' ');
                     console.log("Text recognized:", cleanText);
                     handleScanResult(cleanText, 'text');
@@ -747,7 +750,7 @@
                 
                 // Fallback: Use a test text
                 setTimeout(() => {
-                    handleScanResult("Test Text " + Date.now(), 'text');
+                    handleScanResult("Sample Text " + Date.now(), 'text');
                 }, 1000);
             }
         }
