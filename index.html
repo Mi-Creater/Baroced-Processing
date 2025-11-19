@@ -2,306 +2,102 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Mobile Barcode Generator</title>
-
-  <!-- 🌟 PWA Requirements -->
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#1a73e8">
-
-  <!-- iOS support -->
-  <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="Barcode App">
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>OCR Barcode Generator</title>
 
   <style>
-    html,body{
-      height:100%;
-      margin:0;
-      background:#fff;
-      color:#000;
-      font-family:system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial
-    }
-
-    .app{
-      height:100vh;
-      display:flex;
-      flex-direction:column;
-      overflow:hidden;
-    }
-
-    .barcode-area{
-      height:2in;
-      min-height:120px;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
-      padding:8px;
-    }
-
-    svg{
-      max-width:96%;
-      height:calc(2in - 28px);
-    }
-
-    .label{
-      font-size:14px;
-      opacity:0.9;
-      margin-top:6px;
-      word-break:break-all;
-      text-align:center
-    }
-
-    .input-area{
-      position:fixed;
-      left:0; right:0; bottom:0;
-      padding:10px;
-      background:#ffffffee;
-      box-shadow:0 -6px 18px rgba(0,0,0,0.3);
-      display:flex;
-      gap:8px;
-      align-items:center;
-    }
-
-    .input-area input{
-      flex:1;
-      padding:12px 14px;
-      font-size:18px;
-      border-radius:8px;
-      border:1px solid #ccc;
-    }
-
-    .input-area button{
-      padding:10px 12px;
-      border-radius:8px;
-      border:none;
-      font-weight:600;
-      font-size:14px;
-      color:#fff;
-      background:#1a73e8;
-    }
-
-    /* Camera View */
-    #cameraBox{
-      display:none;
-      position:fixed;
-      top:0; left:0; right:0; bottom:0;
-      background:#000d;
-      align-items:center;
-      justify-content:center;
-      flex-direction:column;
-      z-index:9999;
-      padding:10px;
-    }
-
-    #cameraBox video{
-      width:90%;
-      max-height:60%;
-      border-radius:8px;
-      background:#000;
-    }
-
-    #cameraButtons{
-      margin-top:12px;
-      display:flex;
-      gap:10px;
-    }
-
-    #statusMsg{
-      color:#fff;
-      margin-top:8px;
-      font-size:14px;
-      text-align:center;
-    }
-
+    body { margin:0; font-family:system-ui; background:#fff; }
+    #preview { width:100%; display:none; background:#000; }
+    .input-area { position:fixed; bottom:0; left:0; right:0; padding:10px; background:#fff; display:flex; gap:8px; }
+    input { flex:1; padding:12px; font-size:18px; border-radius:8px; }
+    button { padding:10px 14px; border-radius:8px; border:none; background:#1a73e8; color:#fff; }
+    .barcode-area { height:160px; display:flex; flex-direction:column; justify-content:center; align-items:center; }
   </style>
 </head>
 <body>
-  <div class="app">
 
-    <div class="barcode-area">
-      <svg id="barcode"></svg>
-      <div class="label" id="barcodeLabel">—</div>
-    </div>
+<video id="preview" playsinline></video>
 
-    <div style="flex:1"></div>
+<div class="barcode-area">
+  <svg id="barcode"></svg>
+  <div id="barcodeLabel">—</div>
+</div>
 
-    <!-- 🔵 INPUT AREA + CAMERA BUTTON ADDED -->
-    <div class="input-area">
-      <button id="scanBtn">Scan</button>
-      <input id="textInput" type="text" placeholder="Type or Scan text" maxlength="120"/>
-      <button id="clearBtn">Clear</button>
-      <button id="downloadBtn">DL</button>
-    </div>
-  </div>
+<div style="height:240px"></div>
 
-  <!-- 🔵 Camera Modal -->
-  <div id="cameraBox">
-    <video id="video" autoplay playsinline></video>
+<div class="input-area">
+  <button id="scanBtn">Scan</button>
+  <input id="textInput" placeholder="Type or Scan…" />
+  <button id="clearBtn">Clear</button>
+</div>
 
-    <div id="cameraButtons">
-      <button id="captureBtn" style="background:#28a745">Capture</button>
-      <button id="closeCamera" style="background:#e53935">Close</button>
-    </div>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
 
-    <div id="statusMsg">Point camera to the barcode text</div>
+<!-- OCR library -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
 
-    <canvas id="hiddenCanvas" style="display:none"></canvas>
-  </div>
+<script>
+  const video = document.getElementById("preview");
+  const input = document.getElementById("textInput");
+  const scanBtn = document.getElementById("scanBtn");
+  const clearBtn = document.getElementById("clearBtn");
+  const barcode = document.getElementById("barcode");
+  const label = document.getElementById("barcodeLabel");
 
+  function render(txt){
+    if(!txt){ barcode.innerHTML=""; label.textContent="—"; return; }
+    JsBarcode(barcode, txt, {format:"CODE128", displayValue:false});
+    label.textContent = txt;
+  }
 
-  <!-- JsBarcode -->
-  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+  input.addEventListener("input", ()=> render(input.value));
+  clearBtn.addEventListener("click", ()=>{ input.value=""; render(""); });
 
-  <!-- Tesseract OCR -->
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.min.js"></script>
+  scanBtn.addEventListener("click", async ()=>{
+    try{
+      video.style.display = "block";
 
-  <script>
-    const input = document.getElementById("textInput");
-    const svg = document.getElementById("barcode");
-    const label = document.getElementById("barcodeLabel");
-    const clearBtn = document.getElementById("clearBtn");
-    const downloadBtn = document.getElementById("downloadBtn");
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" }
+      });
 
-    const scanBtn = document.getElementById("scanBtn");
-    const cameraBox = document.getElementById("cameraBox");
-    const video = document.getElementById("video");
-    const captureBtn = document.getElementById("captureBtn");
-    const closeCamera = document.getElementById("closeCamera");
-    const hiddenCanvas = document.getElementById("hiddenCanvas");
-    const statusMsg = document.getElementById("statusMsg");
+      video.srcObject = stream;
+      await video.play();
 
-    let stream = null;
+      // Wait 500ms camera stable
+      await new Promise(r => setTimeout(r, 500));
 
-    /* BARCODE GENERATOR */
-    const barcodeOptions = {
-      format: "CODE128",
-      displayValue: false,
-      height: 60,
-      margin: 0,
-      lineColor: "#000"
-    };
+      // Capture frame
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext("2d").drawImage(video, 0, 0);
 
-    function renderBarcode(value){
-      if(!value){
-        svg.innerHTML = "";
-        label.textContent = "—";
-        return;
-      }
-      try{
-        JsBarcode(svg, value, barcodeOptions);
-        label.textContent = value;
-      }catch{
-        svg.innerHTML = "";
-        label.textContent = value;
-      }
+      // STOP CAMERA
+      stream.getTracks().forEach(t => t.stop());
+      video.style.display = "none";
+
+      // OCR (Extract text only)
+      const result = await Tesseract.recognize(canvas, "eng", {
+        tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 -"
+      });
+
+      let text = result.data.text.trim();
+
+      // Clean text: remove extra lines
+      text = text.split("\n")
+                 .map(t => t.trim())
+                 .filter(t => t.length > 0)
+                 .join(" ");
+
+      input.value = text;
+      render(text);
+
+    }catch(err){
+      alert("Camera permission required! Enable in browser settings.");
     }
+  });
+</script>
 
-    input.addEventListener("input", e => {
-      renderBarcode(e.target.value);
-    });
-
-    clearBtn.addEventListener("click", ()=>{
-      input.value = "";
-      renderBarcode("");
-    });
-
-    /* DOWNLOAD PNG */
-    downloadBtn.addEventListener("click", ()=>{
-      if(!input.value) return alert("Nothing to download");
-
-      const serializer = new XMLSerializer();
-      const svgStr = serializer.serializeToString(svg);
-      const blob = new Blob([svgStr], {type:"image/svg+xml"});
-      const url = URL.createObjectURL(blob);
-
-      const img = new Image();
-      img.onload = ()=>{
-        const canvas = document.createElement("canvas");
-        canvas.width = img.width || 700;
-        canvas.height = img.height || 200;
-        const ctx = canvas.getContext("2d");
-        ctx.fillStyle="#fff";
-        ctx.fillRect(0,0,canvas.width,canvas.height);
-        ctx.drawImage(img,0,0);
-        canvas.toBlob(b=>{
-          const a = document.createElement("a");
-          a.download = "barcode.png";
-          a.href = URL.createObjectURL(b);
-          a.click();
-        });
-      };
-      img.src = url;
-    });
-
-
-    /* CAMERA SCAN LOGIC */
-
-    scanBtn.addEventListener("click", async ()=>{
-      cameraBox.style.display="flex";
-
-      try{
-        stream = await navigator.mediaDevices.getUserMedia({
-          video:{facingMode:"environment"}
-        });
-        video.srcObject = stream;
-        statusMsg.textContent = "Align barcode number inside camera view...";
-      }catch(err){
-        alert("Camera permission needed");
-      }
-    });
-
-    closeCamera.addEventListener("click", ()=>{
-      cameraBox.style.display="none";
-      if(stream){
-        stream.getTracks().forEach(t=>t.stop());
-      }
-    });
-
-    captureBtn.addEventListener("click", async ()=>{
-      statusMsg.textContent = "Processing OCR...";
-
-      const w = video.videoWidth;
-      const h = video.videoHeight;
-
-      hiddenCanvas.width = w;
-      hiddenCanvas.height = h;
-
-      const ctx = hiddenCanvas.getContext("2d");
-      ctx.drawImage(video,0,0,w,h);
-
-      try{
-        const result = await Tesseract.recognize(hiddenCanvas,"eng");
-        let text = result.data.text.replace(/[^\w]/g,"").trim();
-
-        if(!text){
-          statusMsg.textContent = "No text found. Try again.";
-          return;
-        }
-
-        input.value = text;
-        renderBarcode(text);
-
-        statusMsg.textContent = "Done";
-        setTimeout(()=>{
-          closeCamera.click();
-        },500);
-
-      }catch(err){
-        statusMsg.textContent = "OCR Failed";
-      }
-    });
-
-    // Auto-focus
-    renderBarcode("");
-
-    /* PWA SW */
-    if ("serviceWorker" in navigator){
-      navigator.serviceWorker.register("sw.js");
-    }
-
-  </script>
 </body>
 </html>
