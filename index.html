@@ -8,6 +8,7 @@
     <script src="https://unpkg.com/@zxing/library@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
     <style>
+        /* CSS remains the same as your original code */
         * {
             margin: 0;
             padding: 0;
@@ -552,7 +553,6 @@
         </div>
     </div>
     
-    <!-- Camera Scanner Section -->
     <div class="camera-section" id="cameraSection">
         <button class="close-camera" id="closeCamera">✕</button>
         <video id="preview" playsinline></video>
@@ -565,7 +565,6 @@
         </button>
     </div>
     
-    <!-- Manual Input Section -->
     <div class="manual-input-section" id="manualInputSection">
         <div class="manual-input-container">
             <h3>Enter Text or Numbers</h3>
@@ -644,12 +643,19 @@
             textMode.addEventListener("click", () => setScanMode('text'));
             universalMode.addEventListener("click", () => setScanMode('universal'));
             
-            // Scanner button
-            scanBtn.addEventListener("click", startScanner);
+            // Scanner button - MODIFIED to check mode
+            scanBtn.addEventListener("click", () => {
+                if (currentScanMode === 'barcode') {
+                    startScanner(true); // Auto-scan for barcodes
+                } else if (currentScanMode === 'text' || currentScanMode === 'universal') {
+                    startScanner(false); // Manual capture for text/universal
+                }
+            });
             
             // Camera controls
             closeCamera.addEventListener("click", stopScanner);
-            captureBtn.addEventListener("click", captureImage);
+            // Capture button is only relevant for Text/Universal Mode
+            captureBtn.addEventListener("click", captureImage); 
             
             // Manual input buttons
             manualInputBtn.addEventListener("click", openManualInput);
@@ -671,21 +677,25 @@
             textMode.classList.remove('active');
             universalMode.classList.remove('active');
             
+            // Update UI based on mode
             if (mode === 'barcode') {
                 barcodeMode.classList.add('active');
                 input.placeholder = "Scan barcode or enter numbers...";
                 status.textContent = "Barcode mode - Scan barcodes or type numbers";
-                scannerText.textContent = "Point camera at barcode";
+                scannerText.textContent = "Point camera at barcode for auto-scan";
+                captureBtn.style.display = 'none'; // Hide capture button for auto-scan
             } else if (mode === 'text') {
                 textMode.classList.add('active');
                 input.placeholder = "Scan text or enter any text...";
                 status.textContent = "Text mode - Scan text or type anything";
-                scannerText.textContent = "Point camera at text";
+                scannerText.textContent = "Point camera at text and tap 📸";
+                captureBtn.style.display = 'flex'; // Show capture button for text scan
             } else if (mode === 'universal') {
                 universalMode.classList.add('active');
                 input.placeholder = "Scan anything or enter text/numbers...";
                 status.textContent = "Universal mode - Scan anything (barcodes, text, numbers)";
-                scannerText.textContent = "Point camera at anything (barcode, text, numbers)";
+                scannerText.textContent = "Point camera at object and tap 📸 for universal scan";
+                captureBtn.style.display = 'flex'; // Show capture button for universal scan
             }
             
             // Clear current input
@@ -700,7 +710,10 @@
             if (!val || val.trim() === "") { 
                 barcode.innerHTML = ""; 
                 label.textContent = "—"; 
-                status.textContent = "Enter or scan anything to generate barcode";
+                // Don't change status if it's showing an active scanning message
+                if (!isScanning && progress.style.display !== 'block') {
+                    status.textContent = "Enter or scan anything to generate barcode";
+                }
                 return; 
             }
             
@@ -709,6 +722,7 @@
                 barcode.innerHTML = "";
                 
                 // Generate new barcode
+                // CODE128 supports full ASCII character set (text, numbers, symbols)
                 JsBarcode("#barcode", val, {
                     format: "CODE128",
                     width: 2,
@@ -720,7 +734,10 @@
                 });
                 
                 label.textContent = val;
-                status.textContent = "Barcode generated successfully";
+                // Only update status if the render was successful and not during Tesseract scanning
+                if (!isScanning && progress.style.display !== 'block') {
+                    status.textContent = "Barcode generated successfully";
+                }
                 console.log("Barcode generated successfully");
             } catch (error) {
                 console.error("Barcode generation error:", error);
@@ -729,9 +746,9 @@
             }
         }
         
-        // Start scanner
-        async function startScanner() {
-            console.log("Starting scanner...");
+        // Start scanner - Added an argument for auto-scanning
+        async function startScanner(autoScan) {
+            console.log("Starting scanner... AutoScan:", autoScan);
             
             if (isScanning) {
                 console.log("Scanner already running");
@@ -743,6 +760,9 @@
                 
                 // Show camera section
                 cameraSection.style.display = "flex";
+
+                // Show/hide capture button based on autoScan
+                captureBtn.style.display = autoScan ? 'none' : 'flex';
                 
                 // Request camera permission
                 videoStream = await navigator.mediaDevices.getUserMedia({ 
@@ -764,12 +784,14 @@
                         console.log("Video playing");
                         
                         // For barcode mode, start automatic scanning
-                        if (currentScanMode === 'barcode') {
+                        if (autoScan) {
                             startBarcodeScanning();
+                        } else {
+                             // For text/universal mode, prepare for manual capture
+                            status.textContent = `Camera ready - Tap 📸 button to scan ${currentScanMode}`;
                         }
                         
                         isScanning = true;
-                        status.textContent = `Camera ready - ${currentScanMode === 'barcode' ? 'Scanning automatically' : 'Tap capture button to scan'}`;
                         
                     }).catch(e => {
                         console.error("Error playing video:", e);
@@ -815,6 +837,7 @@
                 if (result) {
                     console.log("Barcode scan result:", result.text);
                     handleScanResult(result.text, 'barcode');
+                    stopScanner(); // Stop immediately after successful barcode scan
                 }
                 
                 if (err) {
@@ -826,7 +849,7 @@
             });
         }
         
-        // Capture image for text recognition
+        // Capture image for text recognition (used by Text and Universal modes)
         function captureImage() {
             if (!videoStream || !isScanning) return;
             
@@ -844,9 +867,11 @@
             progressBar.style.width = '0%';
             status.textContent = "Processing image...";
             
-            if (currentScanMode === 'text' || currentScanMode === 'universal') {
-                recognizeTextFromCanvas();
-            }
+            // Text recognition part
+            recognizeTextFromCanvas();
+
+            // Stop scanner right after capture to free camera
+            stopScanner();
         }
         
         // Recognize text from canvas using Tesseract
@@ -856,7 +881,18 @@
                 status.textContent = "Initializing text recognition...";
                 
                 // Use Tesseract.js for OCR
-                const worker = await Tesseract.createWorker('eng');
+                const worker = await Tesseract.createWorker('eng', 1, {
+                    logger: m => {
+                        if (m.status === 'recognizing text') {
+                            progressBar.style.width = `${60 + m.progress * 30}%`;
+                            status.textContent = `Recognizing text... (${Math.round(m.progress * 100)}%)`;
+                        } else if (m.status === 'loading language traineddata') {
+                            status.textContent = `Loading language data...`;
+                        } else if (m.status === 'loading tesseract core') {
+                             status.textContent = `Loading core...`;
+                        }
+                    }
+                });
                 
                 progressBar.style.width = '60%';
                 status.textContent = "Recognizing text...";
@@ -871,14 +907,16 @@
                 progressBar.style.width = '100%';
                 
                 if (text && text.trim() !== '') {
+                    // Clean up recognized text (remove newlines, reduce multiple spaces)
                     const cleanText = text.trim().replace(/\n/g, ' ').replace(/\s+/g, ' ');
                     console.log("Text recognition result:", cleanText);
                     handleScanResult(cleanText, 'text');
                 } else {
                     status.textContent = "No text found in image";
+                    progress.style.display = 'none';
+                    // Re-set status after a delay
                     setTimeout(() => {
-                        progress.style.display = 'none';
-                        status.textContent = "Ready - Tap capture button to try again";
+                        status.textContent = "Ready - Try scanning text again";
                     }, 2000);
                 }
                 
@@ -909,12 +947,25 @@
             
             cameraSection.style.display = "none";
             isScanning = false;
-            progress.style.display = 'none';
-            status.textContent = "Scanner stopped";
             
+            // Only update status if progress is not showing (i.e., OCR is finished)
+            if (progress.style.display !== 'block') {
+                 status.textContent = "Scanner stopped";
+            }
+           
             console.log("Scanner stopped successfully");
         }
         
+        // Clear all
+        function clearAll() {
+             input.value = "";
+             render("");
+             stopScanner();
+             manualInput.value = "";
+             status.textContent = "Cleared - Ready for new scan or input";
+             progress.style.display = 'none';
+        }
+
         // Open manual input
         function openManualInput() {
             manualInputSection.style.display = "flex";
@@ -952,13 +1003,8 @@
             // Add to scan history
             addToHistory(resultText, source);
             
-            // Stop scanner after successful scan (except for barcode auto-scan)
-            if (source !== 'barcode') {
-                stopScanner();
-            }
-            
             // Provide feedback
-            status.textContent = `${source === 'barcode' ? 'Barcode' : 'Text'} scanned successfully!`;
+            status.textContent = `${source === 'barcode' ? 'Barcode' : 'Text'} scanned successfully! Barcode generated.`;
             progress.style.display = 'none';
             
             // Auto-focus back to input
@@ -996,36 +1042,25 @@
                 scanHistory.innerHTML = '<div class="empty-state">No scans yet</div>';
                 return;
             }
-            
+
             scanHistoryData.forEach(item => {
-                const historyItem = document.createElement('div');
-                historyItem.className = 'history-item';
-                
-                const sourceIcon = item.source === 'barcode' ? '📷' : 
-                                 item.source === 'text' ? '🔤' : '⌨️';
-                
-                const sourceText = item.source === 'barcode' ? 'Barcode' : 
-                                  item.source === 'text' ? 'Text' : 'Manual';
-                
-                historyItem.innerHTML = `
-                    <span>${sourceIcon}</span>
+                const div = document.createElement('div');
+                div.className = 'history-item';
+                div.innerHTML = `
                     <div class="history-content">${item.text}</div>
-                    <span class="history-type">${sourceText}</span>
+                    <span class="history-type">${item.source.charAt(0).toUpperCase() + item.source.slice(1)}</span>
                 `;
-                scanHistory.appendChild(historyItem);
+                // Add click listener to re-generate barcode from history
+                div.addEventListener('click', () => {
+                    input.value = item.text;
+                    render(item.text);
+                    status.textContent = `Re-generated barcode from history (${item.source})`;
+                });
+                scanHistory.appendChild(div);
             });
         }
         
-        // Clear all
-        function clearAll() {
-            input.value = "";
-            render("");
-            status.textContent = "Cleared - Select scan mode";
-            input.focus();
-            console.log("Cleared all fields");
-        }
-        
-        // Initialize the app when DOM is loaded
+        // Initialize the app when the page loads
         document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
