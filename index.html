@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-  <title>BarKeeper Pro | Smart Barcode System</title>
+  <title>FlexiBarcode | Full UI Scale Control</title>
   <!-- JsBarcode library -->
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
   <style>
     * {
       margin: 0;
@@ -24,18 +24,25 @@
       overflow: hidden;
     }
 
-    /* MODERN TOP BAR */
+    /* GLOBAL SCALE WRAPPER - everything inside scales */
+    .app-scale-wrapper {
+      height: 100%;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      transform-origin: top left;
+      transition: transform 0.12s cubic-bezier(0.2, 0.9, 0.4, 1);
+    }
+
+    /* TOP BAR */
     .topbar {
       display: flex;
-      gap: 10px;
+      gap: 8px;
       padding: 12px 16px;
-      background: rgba(255,255,255,0.98);
-      backdrop-filter: blur(2px);
-      border-bottom: 1px solid rgba(0,0,0,0.05);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-      position: sticky;
-      top: 0;
-      z-index: 10;
+      background: #FFFFFF;
+      border-bottom: 1px solid #E9EDF2;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+      flex-shrink: 0;
     }
 
     .search-wrapper {
@@ -48,60 +55,100 @@
       left: 14px;
       top: 50%;
       transform: translateY(-50%);
-      color: #6C7A91;
-      font-size: 18px;
+      color: #8E9AAB;
+      font-size: 15px;
       pointer-events: none;
     }
 
     .topbar input {
       width: 100%;
-      padding: 12px 16px 12px 42px;
+      padding: 10px 14px 10px 38px;
       border: 1px solid #E2E8F0;
       border-radius: 40px;
-      font-size: 16px;
-      background: #FFFFFF;
+      font-size: 14px;
+      background: #FAFCFE;
       font-family: 'Inter', monospace;
       outline: none;
-      transition: all 0.2s ease;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+      transition: all 0.2s;
     }
 
     .topbar input:focus {
       border-color: #1E6DFF;
-      box-shadow: 0 0 0 3px rgba(30,109,255,0.2);
+      background: #FFFFFF;
+      box-shadow: 0 0 0 2px rgba(30,109,255,0.12);
     }
 
     button {
-      padding: 0 18px;
+      padding: 0 16px;
       border: none;
       border-radius: 40px;
       font-weight: 600;
-      font-size: 15px;
+      font-size: 13px;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: 0.1s ease;
       background: #F1F5F9;
       color: #1E293B;
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
       font-family: 'Inter', sans-serif;
     }
 
     .save {
       background: #0F172A;
       color: white;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
     }
-
-    .save:active { transform: scale(0.96); background: #1E293B; }
+    .save:active { transform: scale(0.96); }
     .trash {
       background: #FEF2F2;
       color: #B91C1C;
       border: 1px solid #FEE2E2;
     }
-    .trash:active { transform: scale(0.96); background: #FEE2E2; }
+    .trash:active { transform: scale(0.96); }
 
-    /* MAIN CONTAINER */
+    /* ZOOM CONTROLS ROW (global) */
+    .global-zoom-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 8px 12px;
+      background: #FFFFFF;
+      border-bottom: 1px solid #EFF3F8;
+      flex-shrink: 0;
+    }
+    .zoom-global-btn {
+      background: #F8FAFE;
+      border: 1px solid #E2E8F0;
+      font-size: 20px;
+      font-weight: 700;
+      width: 42px;
+      height: 42px;
+      padding: 0;
+      border-radius: 42px;
+      color: #0F172A;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+    }
+    .zoom-global-btn:active { transform: scale(0.94); background: #EEF2F6; }
+    .zoom-percent {
+      font-size: 15px;
+      font-weight: 700;
+      background: #F1F5F9;
+      padding: 6px 16px;
+      border-radius: 60px;
+      min-width: 80px;
+      text-align: center;
+      font-family: monospace;
+      letter-spacing: 0.5px;
+    }
+    .reset-zoom {
+      background: #EFF3F8;
+      font-size: 12px;
+      padding: 0 14px;
+      height: 38px;
+    }
+
+    /* MAIN CONTAINER (flex) */
     .container {
       display: flex;
       flex: 1;
@@ -109,7 +156,7 @@
       position: relative;
     }
 
-    /* LEFT: BARCODE PREVIEW */
+    /* LEFT PANEL (barcode area) */
     .left {
       flex: 1;
       display: flex;
@@ -117,37 +164,39 @@
       align-items: center;
       justify-content: center;
       background: #FFFFFF;
-      gap: 24px;
-      padding: 24px 16px;
+      gap: 20px;
+      padding: 20px 16px;
       overflow-y: auto;
     }
 
     .barcode-card {
-      background: #F8FAFE;
+      background: #F9FBFE;
       border-radius: 32px;
-      padding: 32px 20px;
+      padding: 24px 20px;
       width: 100%;
       max-width: 360px;
       text-align: center;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.02), 0 2px 4px rgba(0,0,0,0.02);
       border: 1px solid #EDF2F7;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.02);
     }
 
+    .barcode-svg-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
     svg {
-      width: 100%;
-      max-width: 300px;
+      max-width: 100%;
       height: auto;
       background: white;
       border-radius: 12px;
     }
-
     .code-label {
       margin-top: 16px;
-      font-size: 20px;
+      font-size: 18px;
       font-weight: 600;
-      letter-spacing: 0.5px;
       background: #F1F5F9;
-      padding: 8px 16px;
+      padding: 8px 18px;
       border-radius: 60px;
       display: inline-block;
       font-family: 'Inter', monospace;
@@ -158,12 +207,11 @@
 
     .input-area {
       width: 100%;
-      max-width: 340px;
+      max-width: 320px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 8px;
     }
-
     .input-area input {
       padding: 14px 18px;
       font-size: 16px;
@@ -172,141 +220,122 @@
       outline: none;
       font-family: 'Inter', monospace;
       background: #FFFFFF;
-      transition: 0.2s;
       text-align: center;
-      letter-spacing: 0.3px;
     }
-
     .input-area input:focus {
       border-color: #1E6DFF;
-      box-shadow: 0 0 0 3px rgba(30,109,255,0.15);
+      box-shadow: 0 0 0 3px rgba(30,109,255,0.12);
     }
-
     .hint-text {
-      font-size: 13px;
+      font-size: 12px;
       color: #64748B;
       text-align: center;
     }
 
-    /* RIGHT PANEL - slide out */
+    /* RIGHT PANEL (trash list) */
     .panel {
       position: absolute;
       top: 0;
       right: 0;
-      width: 85%;
-      max-width: 380px;
+      width: 86%;
+      max-width: 360px;
       height: 100%;
       background: #FFFFFF;
-      box-shadow: -8px 0 30px rgba(0, 0, 0, 0.08);
+      box-shadow: -6px 0 28px rgba(0, 0, 0, 0.08);
       z-index: 20;
       display: flex;
       flex-direction: column;
       transform: translateX(100%);
-      transition: transform 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+      transition: transform 0.23s cubic-bezier(0.2, 0.9, 0.4, 1.1);
       border-radius: 28px 0 0 28px;
       overflow: hidden;
     }
-
     .panel.active {
       transform: translateX(0);
     }
-
     .panel-header {
       background: #0F172A;
       color: white;
-      padding: 20px 20px;
+      padding: 18px 20px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       font-weight: 600;
-      font-size: 18px;
+      font-size: 16px;
     }
-
     .panel-header button {
-      background: rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.12);
       color: white;
-      padding: 6px 12px;
+      padding: 5px 12px;
       border-radius: 30px;
-      font-size: 14px;
+      font-size: 12px;
     }
-
     .barcode-list {
       flex: 1;
       overflow-y: auto;
-      padding: 8px 0 20px 0;
+      padding: 6px 0;
     }
-
     .list-item {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 16px 20px;
+      padding: 14px 18px;
       border-bottom: 1px solid #F0F2F5;
-      transition: all 0.1s;
       cursor: pointer;
+      transition: background 0.08s;
     }
-
     .list-item:active {
-      background: #F8FAFE;
+      background: #F8FAFC;
     }
-
     .barcode-value {
       font-family: 'Inter', monospace;
       font-weight: 500;
-      font-size: 15px;
+      font-size: 14px;
       color: #0F172A;
-      letter-spacing: 0.2px;
       word-break: break-all;
       flex: 1;
     }
-
     .delete-btn {
       background: none;
       border: none;
-      font-size: 20px;
+      font-size: 18px;
       cursor: pointer;
       padding: 6px 10px;
       color: #94A3B8;
-      transition: 0.1s;
       border-radius: 40px;
     }
-
     .delete-btn:active {
       color: #E11D48;
       background: #FFF1F2;
       transform: scale(0.92);
     }
-
     .empty-list {
       text-align: center;
       color: #94A3B8;
       padding: 40px 20px;
-      font-size: 15px;
+      font-size: 13px;
     }
-
-    /* backdrop overlay */
     .backdrop {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.3);
-      backdrop-filter: blur(3px);
+      background: rgba(0, 0, 0, 0.28);
+      backdrop-filter: blur(2px);
       z-index: 15;
       visibility: hidden;
       opacity: 0;
       transition: 0.2s;
     }
-
     .backdrop.active {
       visibility: visible;
       opacity: 1;
     }
 
-    /* search highlight */
+    /* scroll */
     .barcode-list::-webkit-scrollbar {
-      width: 4px;
+      width: 3px;
     }
     .barcode-list::-webkit-scrollbar-track {
       background: #F1F5F9;
@@ -316,66 +345,113 @@
       border-radius: 10px;
     }
 
-    @media (max-width: 550px) {
+    /* mobile adjustments (scale will adapt) */
+    @media (max-width: 500px) {
       .topbar {
         padding: 10px 12px;
       }
-      .save, .trash {
-        padding: 0 14px;
-        font-size: 13px;
-      }
-      .barcode-card {
-        padding: 20px 12px;
-      }
-      .code-label {
-        font-size: 16px;
-      }
-      .list-item {
-        padding: 14px 16px;
+      .zoom-global-btn {
+        width: 38px;
+        height: 38px;
+        font-size: 18px;
       }
     }
   </style>
 </head>
 <body>
-
-<div class="topbar">
-  <div class="search-wrapper">
-    <span class="search-icon">🔍</span>
-    <input type="text" id="searchInput" placeholder="Search by digits (last digits or full)..." autocomplete="off">
-  </div>
-  <button class="save" id="saveBtn">💾 Save</button>
-  <button class="trash" id="openPanelBtn">📋 List</button>
-</div>
-
-<div class="container">
-  <div class="left">
-    <div class="barcode-card">
-      <svg id="barcodeSvg"></svg>
-      <div class="code-label" id="barcodeTextLabel">—</div>
-    </div>
-    <div class="input-area">
-      <input type="text" id="barcodeInput" placeholder="Enter or scan barcode..." autocomplete="off">
-      <div class="hint-text">✓ Live preview · Click any search result to load barcode</div>
-    </div>
+<div class="app-scale-wrapper" id="appScaleWrapper">
+  <!-- global zoom control row -->
+  <div class="global-zoom-bar">
+    <button class="zoom-global-btn" id="globalZoomMinus">−</button>
+    <span class="zoom-percent" id="globalZoomPercent">100%</span>
+    <button class="zoom-global-btn" id="globalZoomPlus">+</button>
+    <button class="reset-zoom" id="globalZoomReset">Reset</button>
   </div>
 
-  <div id="backdrop" class="backdrop"></div>
-
-  <div class="panel" id="savedPanel">
-    <div class="panel-header">
-      <span>📦 Saved Barcodes</span>
-      <button id="closePanelBtn">✕ Close</button>
+  <div class="topbar">
+    <div class="search-wrapper">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="Search by last digits or full code..." autocomplete="off">
     </div>
-    <div class="barcode-list" id="barcodeListContainer">
-      <div class="empty-list">✨ No barcodes yet.<br>Save your first barcode.</div>
+    <button class="save" id="saveBtn">💾 Save</button>
+    <button class="trash" id="openPanelBtn">📋 List</button>
+  </div>
+
+  <div class="container">
+    <div class="left">
+      <div class="barcode-card">
+        <div class="barcode-svg-wrapper">
+          <svg id="barcodeSvg"></svg>
+        </div>
+        <div class="code-label" id="barcodeTextLabel">—</div>
+      </div>
+      <div class="input-area">
+        <input type="text" id="barcodeInput" placeholder="Enter or scan barcode..." autocomplete="off">
+        <div class="hint-text">✓ Live preview · Tap any search result to load</div>
+      </div>
+    </div>
+
+    <div id="backdrop" class="backdrop"></div>
+
+    <div class="panel" id="savedPanel">
+      <div class="panel-header">
+        <span>📦 Saved Barcodes</span>
+        <button id="closePanelBtn">✕ Close</button>
+      </div>
+      <div class="barcode-list" id="barcodeListContainer">
+        <div class="empty-list">✨ No barcodes yet.<br>Save your first code.</div>
+      </div>
     </div>
   </div>
 </div>
 
 <script>
-  // ---------- STATE ----------
-  let barcodesArray = [];     // stored barcode strings
-
+  // ---------- GLOBAL UI SCALE (full interface) ----------
+  const scaleWrapper = document.getElementById('appScaleWrapper');
+  const zoomPercentSpan = document.getElementById('globalZoomPercent');
+  const zoomMinus = document.getElementById('globalZoomMinus');
+  const zoomPlus = document.getElementById('globalZoomPlus');
+  const zoomReset = document.getElementById('globalZoomReset');
+  
+  let currentGlobalScale = 100; // percentage (70% to 160%)
+  const MIN_SCALE = 65;
+  const MAX_SCALE = 170;
+  
+  function applyGlobalScale() {
+    const scaleValue = currentGlobalScale / 100;
+    scaleWrapper.style.transform = `scale(${scaleValue})`;
+    // adjust wrapper width/height to avoid clipping: set width/height dynamically
+    scaleWrapper.style.width = `${100 / scaleValue}%`;
+    scaleWrapper.style.height = `${100 / scaleValue}%`;
+    zoomPercentSpan.innerText = `${currentGlobalScale}%`;
+  }
+  
+  function changeGlobalScale(delta) {
+    let newScale = currentGlobalScale + delta;
+    if (newScale < MIN_SCALE) newScale = MIN_SCALE;
+    if (newScale > MAX_SCALE) newScale = MAX_SCALE;
+    if (newScale === currentGlobalScale) return;
+    currentGlobalScale = newScale;
+    applyGlobalScale();
+    // after rescaling, re-draw barcode to maintain quality (optional but good)
+    const currentVal = barcodeInput.value.trim();
+    if (currentVal) drawBarcode(currentVal);
+  }
+  
+  function resetGlobalScale() {
+    currentGlobalScale = 100;
+    applyGlobalScale();
+    const currentVal = barcodeInput.value.trim();
+    if (currentVal) drawBarcode(currentVal);
+  }
+  
+  zoomMinus.addEventListener('click', () => changeGlobalScale(-10));
+  zoomPlus.addEventListener('click', () => changeGlobalScale(10));
+  zoomReset.addEventListener('click', resetGlobalScale);
+  
+  // ---------- BARCODE DATA ----------
+  let barcodesArray = [];
+  
   // DOM elements
   const barcodeInput = document.getElementById('barcodeInput');
   const barcodeSvg = document.getElementById('barcodeSvg');
@@ -387,12 +463,12 @@
   const backdrop = document.getElementById('backdrop');
   const searchInput = document.getElementById('searchInput');
   const listContainer = document.getElementById('barcodeListContainer');
-
-  // ---------- HELPER FUNCTIONS ----------
+  
+  // Persistence
   function persistData() {
     localStorage.setItem("proBarcodeSystem", JSON.stringify(barcodesArray));
   }
-
+  
   function loadData() {
     const stored = localStorage.getItem("proBarcodeSystem");
     if (stored) {
@@ -401,7 +477,7 @@
         if (!Array.isArray(barcodesArray)) barcodesArray = [];
       } catch(e) { barcodesArray = []; }
     } else {
-      // add some demo barcodes for testing (to showcase search)
+      // demo barcodes
       barcodesArray = [
         "5901234123457",
         "4006381333931",
@@ -412,11 +488,10 @@
       persistData();
     }
     barcodesArray = barcodesArray.map(v => String(v).trim()).filter(v => v !== "");
-    // keep order but ensure newest first? We'll preserve order as saved (unshift on save)
     renderList(getCurrentFilter());
   }
-
-  // Draw barcode using JsBarcode
+  
+  // Draw barcode (standard)
   function drawBarcode(value) {
     if (!value || value.trim() === "") {
       barcodeSvg.innerHTML = '';
@@ -430,23 +505,22 @@
         displayValue: false,
         width: 2,
         height: 70,
-        margin: 5,
+        margin: 8,
         background: "#ffffff",
         lineColor: "#000000"
       });
       barcodeTextLabel.innerText = cleanVal;
     } catch (err) {
       console.warn(err);
-      barcodeTextLabel.innerText = "Invalid format";
+      barcodeTextLabel.innerText = "Invalid";
       barcodeSvg.innerHTML = '';
     }
   }
-
+  
   function getCurrentFilter() {
     return searchInput.value.trim();
   }
-
-  // Filter logic: match full code OR last 3 digits OR last 4 digits (as per requirement)
+  
   function matchesFilter(code, filterText) {
     if (!filterText) return true;
     const lowerCode = code.toLowerCase();
@@ -455,274 +529,166 @@
     const last4 = lowerCode.slice(-4);
     return lowerCode.includes(lowerFilter) || last3.includes(lowerFilter) || last4.includes(lowerFilter);
   }
-
-  // RENDER LIST (trash panel) with current search filter
+  
+  // RENDER list (trash panel)
   function renderList(filterText = "") {
     if (!listContainer) return;
-    
     let filtered = [...barcodesArray];
     if (filterText.trim() !== "") {
       filtered = barcodesArray.filter(code => matchesFilter(code, filterText));
     }
-
     if (filtered.length === 0) {
-      listContainer.innerHTML = `<div class="empty-list">🔎 No matching barcodes<br>Try different digits or save new</div>`;
+      listContainer.innerHTML = `<div class="empty-list">🔎 No matching barcodes<br>Save new or try different digits</div>`;
       return;
     }
-
     listContainer.innerHTML = "";
     filtered.forEach(code => {
       const itemDiv = document.createElement('div');
       itemDiv.className = 'list-item';
-      
       const valueSpan = document.createElement('span');
       valueSpan.className = 'barcode-value';
       valueSpan.innerText = code;
-      
       const delBtn = document.createElement('button');
       delBtn.innerText = '✕';
       delBtn.className = 'delete-btn';
       delBtn.setAttribute('aria-label', 'Delete');
       
-      // IMPORTANT: Click on barcode text OR entire row (except delete) will LOAD barcode to main area
       valueSpan.addEventListener('click', (e) => {
         e.stopPropagation();
         selectAndLoadBarcode(code);
       });
-      
       delBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         if (confirm(`Delete "${code}" ?`)) {
           deleteBarcode(code);
         }
       });
-      
       itemDiv.appendChild(valueSpan);
       itemDiv.appendChild(delBtn);
-      
-      // Row click also loads barcode (but avoid conflict with delete)
       itemDiv.addEventListener('click', (e) => {
         if (e.target !== delBtn && !delBtn.contains(e.target)) {
           selectAndLoadBarcode(code);
         }
       });
-      
       listContainer.appendChild(itemDiv);
     });
   }
-
-  // SELECT barcode from search results → load into main area + show barcode
+  
+  // SELECT from search result -> load barcode
   function selectAndLoadBarcode(code) {
-    // Update input field
     barcodeInput.value = code;
-    // Draw barcode in the main preview area
     drawBarcode(code);
-    
-    // Provide subtle haptic / visual feedback (for mobile)
-    if (navigator.vibrate) navigator.vibrate(20);
-    
-    // Optional: auto-close panel on mobile after selection for better UX
+    if (navigator.vibrate) navigator.vibrate(12);
+    // auto-close panel on mobile for better UX
     if (window.innerWidth <= 700) {
       closePanel();
     }
-    
-    // Highlight selection briefly (flash effect on barcode card)
+    // flash effect
     const card = document.querySelector('.barcode-card');
     if (card) {
       card.style.transition = 'background 0.1s';
       card.style.background = '#EFF6FF';
-      setTimeout(() => { card.style.background = '#F8FAFE'; }, 200);
+      setTimeout(() => { card.style.background = '#F9FBFE'; }, 180);
     }
-    
-    // Focus input to show that barcode is loaded
     barcodeInput.focus();
   }
-
-  // DELETE barcode from storage
+  
   function deleteBarcode(valueToDelete) {
     const newArray = barcodesArray.filter(v => v !== valueToDelete);
     if (newArray.length === barcodesArray.length) return;
     barcodesArray = newArray;
     persistData();
-    const currentFilter = getCurrentFilter();
-    renderList(currentFilter);
-    
-    // If currently displayed barcode is the one deleted, clear preview
-    const currentMainValue = barcodeInput.value.trim();
-    if (currentMainValue === valueToDelete) {
+    renderList(getCurrentFilter());
+    const currentMain = barcodeInput.value.trim();
+    if (currentMain === valueToDelete) {
       barcodeInput.value = "";
       drawBarcode("");
     }
   }
-
-  // SAVE current input (add to top, avoid duplicates by moving to front)
+  
   function saveCurrentBarcode() {
     let rawValue = barcodeInput.value.trim();
     if (rawValue === "") {
-      barcodeInput.placeholder = "⚠️ Enter a barcode first!";
-      setTimeout(() => { barcodeInput.placeholder = "Enter or scan barcode..."; }, 1500);
+      barcodeInput.placeholder = "❗ Enter barcode first";
+      setTimeout(() => { barcodeInput.placeholder = "Enter or scan barcode..."; }, 1200);
       return;
     }
-    
-    // If duplicate exists, remove it first (to move to top)
     const existingIndex = barcodesArray.findIndex(item => item === rawValue);
     if (existingIndex !== -1) {
       barcodesArray.splice(existingIndex, 1);
     }
-    // Add to beginning (most recent)
     barcodesArray.unshift(rawValue);
     persistData();
-    
-    // Refresh list using current search filter (preserve search context)
-    const currentFilter = getCurrentFilter();
-    renderList(currentFilter);
-    
-    // Visual feedback on save button
+    renderList(getCurrentFilter());
+    // visual feedback
     saveBtn.style.transform = "scale(0.96)";
-    saveBtn.style.background = "#2D3A5E";
-    setTimeout(() => {
-      saveBtn.style.transform = "";
-      saveBtn.style.background = "#0F172A";
-    }, 150);
-    
-    // If panel is open, list already updated. Also keep the barcode preview
-    // If the user saved a barcode that matches current search, it will appear in list.
+    setTimeout(() => { saveBtn.style.transform = ""; }, 120);
   }
-
-  // Panel controls
+  
+  // Panel management
   function openPanel() {
     savedPanel.classList.add('active');
     backdrop.classList.add('active');
     document.body.style.overflow = 'hidden';
-    // Sync list with current search filter when opening
-    const currentFilter = getCurrentFilter();
-    renderList(currentFilter);
-    // Auto-focus search input for better UX on mobile/desktop
-    setTimeout(() => { searchInput.focus(); }, 100);
+    renderList(getCurrentFilter());
+    setTimeout(() => { searchInput.focus(); }, 60);
   }
-
+  
   function closePanel() {
     savedPanel.classList.remove('active');
     backdrop.classList.remove('active');
     document.body.style.overflow = '';
   }
-
-  function togglePanel() {
-    if (savedPanel.classList.contains('active')) {
-      closePanel();
-    } else {
-      openPanel();
-    }
-  }
-
-  // ---------- EVENT HANDLERS ----------
-  function handleSearchInput() {
-    const filterValue = searchInput.value;
-    // Update list with real-time filter (show matching barcodes from saved list)
-    renderList(filterValue);
-    
-    // CRITICAL REQUIREMENT: "once i click on search then i write some digit there in search bar and they bring the same code from list and show down"
-    // The list shows the filtered barcodes immediately. When the user clicks on any filtered item,
-    // the barcode loads to the main area (selectAndLoadBarcode). This meets the spec perfectly.
-    
-    // Additional UX: If panel is closed but user starts typing in search, auto-open the panel
-    if (!savedPanel.classList.contains('active') && filterValue.trim() !== "") {
-      openPanel();
-    }
-  }
-
-  // Live input for barcode preview
-  function handleBarcodeInput() {
-    const val = barcodeInput.value;
-    drawBarcode(val);
-  }
-
-  // Search input focus -> if any typed later, open panel (already covered)
-  // Also when user clicks on "List" button, open panel and show all with current filter
-
-  // Close panel when clicking on backdrop
-  backdrop.addEventListener('click', closePanel);
   
-  // Event listeners
+  function handleSearchInput() {
+    const filter = searchInput.value;
+    renderList(filter);
+    if (!savedPanel.classList.contains('active') && filter.trim() !== "") {
+      openPanel();
+    }
+  }
+  
+  function handleBarcodeInput() {
+    drawBarcode(barcodeInput.value);
+  }
+  
+  // Event bindings
   barcodeInput.addEventListener('input', handleBarcodeInput);
   saveBtn.addEventListener('click', saveCurrentBarcode);
-  openPanelBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    openPanel();
-  });
+  openPanelBtn.addEventListener('click', (e) => { e.stopPropagation(); openPanel(); });
   closePanelBtn.addEventListener('click', closePanel);
   searchInput.addEventListener('input', handleSearchInput);
+  backdrop.addEventListener('click', closePanel);
   
-  // Also if user presses escape key while panel open -> close
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && savedPanel.classList.contains('active')) {
-      closePanel();
-    }
+    if (e.key === 'Escape' && savedPanel.classList.contains('active')) closePanel();
   });
   
-  // When the panel opens, we also ensure that if there's a search term, the list is filtered accordingly
-  // and if there is no search term, we show all barcodes.
-  
-  // Additional feature: when user selects a barcode from the list, the search bar should remain 
-  // showing the same filter so they can continue searching. That's already preserved.
-  
-  // Improved: highlight the selected barcode in main area animation.
-  
-  // Support for external update after localStorage changes (multi-tab)
   window.addEventListener('storage', (e) => {
     if (e.key === 'proBarcodeSystem') {
       loadData();
-      if (savedPanel.classList.contains('active')) {
-        renderList(getCurrentFilter());
-      }
-      // Also refresh current barcode preview if current input value still exists?
-      const currentInput = barcodeInput.value.trim();
-      if (currentInput && !barcodesArray.includes(currentInput)) {
-        // Not needed to clear, but fine
-      }
+      if (savedPanel.classList.contains('active')) renderList(getCurrentFilter());
+      const curr = barcodeInput.value.trim();
+      if (curr && !barcodesArray.includes(curr)) { /* nothing */ }
     }
   });
   
-  // ---- INITIALIZE APP ----
+  // initial load & apply default scale
   function init() {
     loadData();
     drawBarcode("");
     barcodeInput.value = "";
-    // Set initial empty search state
     searchInput.value = "";
+    currentGlobalScale = 100;
+    applyGlobalScale();
     renderList("");
-    // if panel closed we don't force open
   }
   
   init();
   
-  // Also bind a direct call to ensure that search works with "last digits" requirement.
-  // The matchesFilter function already includes last 3 and last 4 digits matching.
-  // Example: user types "345" -> barcode "5901234123457" will match because last digits "457" 
-  // Actually last 3 of that barcode: "457", but includes "345" if anywhere? The requirement says: "search some digit they need to pick the barcode from trash and come in front"
-  // Our filter matches any occurrence OR last3 OR last4, so any digit combination will be found.
-  
-  // For extra polish: when you click on any result, the barcode appears in the main barcode area AND the barcode svg updates.
-  // Verified.
-  
-  // To fulfill the "once i select the show the barcode down and the barcode" - means after selection, barcode shows in the preview card.
-  // This works perfectly.
-  
-  // Additional: manually expose for any debug
-  window.debug = { barcodesArray, selectAndLoadBarcode };
-  
-  // Also ensure that after deletion, if the current barcode matches deleted one, clear preview.
-  // already implemented in deleteBarcode()
-  
-  // When you click on List, we render the filtered list (if any search term)
-  // Open panel button triggers openPanel() which calls renderList with current filter
-  // search input listener triggers renderList with new filter and opens panel if needed.
-  
-  // Final polish: Focus management: when open panel and search is focused, user can type digits,
-  // list updates in realtime, and click on any -> loads barcode to main area.
-  
-  // Add a small hint for mobile users
-  console.log("✅ Pro Barcode Ready — Search digits, click result, barcode appears!");
+  // additional helper: after zooming, we keep barcode crisp (already called in changeGlobalScale)
+  // Also ensure list items remain tappable and everything scales uniformly
+  console.log("✅ Full UI Scale System ready — +/- adjusts entire interface (text, barcode, panel, buttons)");
 </script>
 </body>
 </html>
